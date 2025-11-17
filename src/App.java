@@ -131,16 +131,23 @@ public class App {
      *  Em caso de não encontrar o produto, retorna null */
     static Produto localizarProdutoID(ABB<Integer, Produto> produtosCadastrados) {
         
-        // TODO
-    	return null;
+        Integer idProcurado = lerOpcao("Digite o ID do produto: ", Integer.class);
+        
+        if (idProcurado == null) {
+        	return null;
+        }
+        
+        return localizarProduto(produtosCadastrados, idProcurado);
     }
     
     /** Localiza um produto na árvore de produtos organizados por nome, a partir do nome de produto informado pelo usuário, e o retorna. 
      *  A busca não é sensível ao caso. Em caso de não encontrar o produto, retorna null */
     static Produto localizarProdutoNome(ABB<String, Produto> produtosCadastrados) {
         
-    	// TODO
-    	return null;
+    	System.out.println("Digite o nome do produto: ");
+    	String nomeProcurado = teclado.nextLine();
+    	
+    	return localizarProduto(produtosCadastrados, nomeProcurado);
     }
     
     private static void mostrarProduto(Produto produto) {
