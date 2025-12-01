@@ -130,20 +130,33 @@ public abstract class Produto implements Comparable<Produto>{
     	LocalDate dataDeValidade;
     	Produto produto;
     	
-    	dadosLinha = linha.split(";");
-    	tipo = Integer.parseInt(dadosLinha[0]);
-    	descricao = dadosLinha[1];
-    	precoCusto = Double.parseDouble(dadosLinha[2].replace(",", "."));
-        margemLucro = Double.parseDouble(dadosLinha[3].replace(",", "."));
-        if (tipo == 2) {
-    		DateTimeFormatter formatoData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    		dataDeValidade = LocalDate.parse(dadosLinha[4], formatoData);
-    		produto = new ProdutoPerecivel(descricao, precoCusto, margemLucro, dataDeValidade);
-    	} else {
-    		produto = new ProdutoNaoPerecivel(descricao, precoCusto, margemLucro);
+    	try {
+    	    dadosLinha = linha.split(";");
+    	    
+    	    if (dadosLinha.length < 4) {
+    	        throw new IllegalArgumentException("Formato de linha inválido");
+    	    }
+    	    
+    	    tipo = Integer.parseInt(dadosLinha[0]);
+    	    descricao = dadosLinha[1];
+    	    precoCusto = Double.parseDouble(dadosLinha[2].replace(",", "."));
+            margemLucro = Double.parseDouble(dadosLinha[3].replace(",", "."));
+            
+            if (tipo == 2) {
+                if (dadosLinha.length < 5) {
+                    throw new IllegalArgumentException("Data de validade ausente para produto perecível");
+                }
+    		    DateTimeFormatter formatoData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    		    dataDeValidade = LocalDate.parse(dadosLinha[4], formatoData);
+    		    produto = new ProdutoPerecivel(descricao, precoCusto, margemLucro, dataDeValidade);
+    	    } else {
+    		    produto = new ProdutoNaoPerecivel(descricao, precoCusto, margemLucro);
+    	    }
+    	    
+    	    return produto;
+    	} catch (NumberFormatException | ArrayIndexOutOfBoundsException excecao) {
+    	    throw new IllegalArgumentException("Erro ao processar dados do produto: " + linha);
     	}
-    	
-    	return produto;
     }
     	
     /**
