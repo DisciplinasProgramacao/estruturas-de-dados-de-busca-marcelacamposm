@@ -21,6 +21,10 @@ public class App {
     
     static ABB<Integer, Produto> produtosCadastradosPorId;
     
+    static AVL<String, Produto> produtosBalanceadosPorNome;
+    
+    static AVL<Integer, Produto> produtosBalanceadosPorId;
+    
     static void limparTela() {
         System.out.print("\033[H\033[2J");
         System.out.flush();
@@ -53,15 +57,23 @@ public class App {
     }
     
     /** Imprime o menu principal, lê a opção do usuário e a retorna (int).
+     * Perceba que poderia haver uma melhor modularização com a criação de uma classe Menu.
      * @return Um inteiro com a opção do usuário.
     */
     static int menu() {
         cabecalho();
-        System.out.println("1 - Listar todos os produtos");
-        System.out.println("2 - Carregar produtos por nome/descrição");
-        System.out.println("3 - Carregar produtos por id");
-        System.out.println("4 - Procurar produto, por nome");
-        System.out.println("5 - Procurar produto, por id");
+        System.out.println("1 - Carregar produtos por nome/descrição (ABB)");
+        System.out.println("2 - Carregar produtos por id (ABB)");
+        System.out.println("3 - Carregar produtos por nome/descrição (AVL)");
+        System.out.println("4 - Carregar produtos por id (AVL)");
+        System.out.println("5 - Procurar produto, por nome (ABB)");
+        System.out.println("6 - Procurar produto, por id (ABB)");
+        System.out.println("7 - Procurar produto, por nome (AVL)");
+        System.out.println("8 - Procurar produto, por id (AVL)");
+        System.out.println("9 - Remover produto, por nome");
+        System.out.println("10 - Remover produto, por id");
+        System.out.println("11 - Recortar a lista de produtos, por nome");
+        System.out.println("12 - Recortar a lista de produtos, por id");
         System.out.println("0 - Sair");
         System.out.print("Digite sua opção: ");
         return Integer.parseInt(teclado.nextLine());
@@ -107,7 +119,39 @@ public class App {
     	return produtosCadastrados;
     }
     
-    static <K> Produto localizarProduto(ABB<K, Produto> produtosCadastrados, K procurado) {
+    static <K> AVL<K, Produto> lerProdutosAVL(String nomeArquivoDados, Function<Produto, K> extratorDeChave) {
+    	
+    	Scanner arquivo = null;
+    	int numProdutos;
+    	String linha;
+    	Produto produto;
+    	AVL<K, Produto> produtosCadastrados;
+    	K chave;
+    	
+    	try {
+    		arquivo = new Scanner(new File(nomeArquivoDados), Charset.forName("UTF-8"));
+    		
+    		numProdutos = Integer.parseInt(arquivo.nextLine());
+    		produtosCadastrados = new AVL<K, Produto>();
+    		
+    		for (int i = 0; i < numProdutos; i++) {
+    			linha = arquivo.nextLine();
+    			produto = Produto.criarDoTexto(linha);
+    			chave = extratorDeChave.apply(produto);
+    			produtosCadastrados.inserir(chave, produto);
+    		}
+    		quantosProdutos = numProdutos;
+    		
+    	} catch (IOException excecaoArquivo) {
+    		produtosCadastrados = null;
+    	} finally {
+    		arquivo.close();
+    	}
+    	
+    	return produtosCadastrados;
+    }
+    
+    static <K> Produto localizarProduto(IMapeamento<K, Produto> produtosCadastrados, K procurado) {
     	
     	Produto produto;
     	
@@ -129,25 +173,23 @@ public class App {
     
     /** Localiza um produto na árvore de produtos organizados por id, a partir do código de produto informado pelo usuário, e o retorna. 
      *  Em caso de não encontrar o produto, retorna null */
-    static Produto localizarProdutoID(ABB<Integer, Produto> produtosCadastrados) {
+    static Produto localizarProdutoID(IMapeamento<Integer, Produto> produtosCadastrados) {
         
-        Integer idProcurado = lerOpcao("Digite o ID do produto: ", Integer.class);
+        int idProduto = lerOpcao("Digite o identificador do produto desejado: ", Integer.class);
         
-        if (idProcurado == null) {
-        	return null;
-        }
-        
-        return localizarProduto(produtosCadastrados, idProcurado);
+        return localizarProduto(produtosCadastrados, idProduto);
     }
     
     /** Localiza um produto na árvore de produtos organizados por nome, a partir do nome de produto informado pelo usuário, e o retorna. 
      *  A busca não é sensível ao caso. Em caso de não encontrar o produto, retorna null */
-    static Produto localizarProdutoNome(ABB<String, Produto> produtosCadastrados) {
+    static Produto localizarProdutoNome(IMapeamento<String, Produto> produtosCadastrados) {
         
-    	System.out.println("Digite o nome do produto: ");
-    	String nomeProcurado = teclado.nextLine();
+    	String descricao;
     	
-    	return localizarProduto(produtosCadastrados, nomeProcurado);
+    	System.out.println("Digite o nome ou a descrição do produto desejado:");
+        descricao = teclado.nextLine();
+        
+        return localizarProduto(produtosCadastrados, descricao);
     }
     
     private static void mostrarProduto(Produto produto) {
@@ -162,12 +204,84 @@ public class App {
         System.out.println(mensagem);
     }
     
-    /** Lista todos os produtos cadastrados, numerados, um por linha */
-    static <K> void listarTodosOsProdutos(ABB<K, Produto> produtosCadastrados) {
+    /** Localiza e remove um produto da árvore de produtos organizados por id, a partir do código de produto informado pelo usuário, e o retorna. 
+     *  Em caso de não encontrar o produto, retorna null */
+    static Produto removerProdutoId(ABB<Integer, Produto> produtosCadastrados) {
+         cabecalho();
+         System.out.println("Localizando o produto por id");
+         int id = lerOpcao("Digite o id do produto que deve ser removido", Integer.class);
+         Produto localizado =  removerProduto(produtosCadastrados, id);
+         return localizado;
+    }
+
+     /** Localiza e remove um produto na árvore de produtos organizados por nome, a partir do nome de produto informado pelo usuário, e o retorna. 
+      *  A busca não é sensível ao caso. Em caso de não encontrar o produto, retorna null */
+    static Produto removerProdutoNome(ABB<String, Produto> produtosCadastrados) {
+    	String descricao;
+         
+    	cabecalho();
+        System.out.println("Localizando o produto por nome");
+        System.out.print("Digite a descrição do produto que deve ser removido: ");
+        descricao = teclado.nextLine();
+        Produto localizado =  removerProduto(produtosCadastrados, descricao);
+        return localizado;
+    }
+
+    static <K> Produto removerProduto(ABB<K, Produto> produtosCadastrados, K chave){
+         cabecalho();
+         Produto localizado =  produtosCadastrados.remover(chave);
+         return localizado;
+    }
+    
+    private static void recortarProdutosNome(ABB<String, Produto> produtosCadastrados) {
+     	
+    	String chaveInicio, chaveFim;
+    	Lista<Produto> recorte;
     	
-        cabecalho();
-        System.out.println("\nPRODUTOS CADASTRADOS:");
-        System.out.println(produtosCadastrados.toString());
+    	cabecalho();
+    	System.out.println("Recortar produtos por nome");
+    	System.out.print("Digite o nome inicial: ");
+    	chaveInicio = teclado.nextLine();
+    	System.out.print("Digite o nome final: ");
+    	chaveFim = teclado.nextLine();
+    	
+    	recorte = produtosCadastrados.recortar(chaveInicio, chaveFim);
+    	
+    	cabecalho();
+    	System.out.println("Produtos no intervalo de \"" + chaveInicio + "\" até \"" + chaveFim + "\":");
+    	System.out.println(recorte);
+     }
+     
+    private static void recortarProdutosId(ABB<Integer, Produto> produtosCadastrados) {
+     	
+    	Integer chaveInicio, chaveFim;
+    	Lista<Produto> recorte;
+    	
+    	cabecalho();
+    	System.out.println("Recortar produtos por id");
+    	chaveInicio = lerOpcao("Digite o id inicial: ", Integer.class);
+    	chaveFim = lerOpcao("Digite o id final: ", Integer.class);
+    	
+    	recorte = produtosCadastrados.recortar(chaveInicio, chaveFim);
+    	
+    	cabecalho();
+    	System.out.println("Produtos no intervalo de " + chaveInicio + " até " + chaveFim + ":");
+    	System.out.println(recorte);
+    }
+    
+    private static <K> void recortarProdutos(ABB<K, Produto> produtosCadastrados) {
+    	
+    	if (produtosCadastrados instanceof ABB<?, ?>) {
+    		@SuppressWarnings("unchecked")
+    		ABB<String, Produto> temp = (ABB<String, Produto>) produtosCadastrados;
+    		if (temp == produtosCadastradosPorNome || temp == (Object) produtosBalanceadosPorNome) {
+    			recortarProdutosNome(temp);
+    		} else {
+    			@SuppressWarnings("unchecked")
+    			ABB<Integer, Produto> tempId = (ABB<Integer, Produto>) produtosCadastrados;
+    			recortarProdutosId(tempId);
+    		}
+    	}
     }
     
 	public static void main(String[] args) {
@@ -179,11 +293,18 @@ public class App {
         do{
             opcao = menu();
             switch (opcao) {
-                case 1 -> listarTodosOsProdutos(produtosCadastradosPorNome);
-                case 2 -> produtosCadastradosPorNome = lerProdutos(nomeArquivoDados, (p -> p.descricao));
-                case 3 -> produtosCadastradosPorId = lerProdutos(nomeArquivoDados, (p -> p.idProduto));
-                case 4 -> mostrarProduto(localizarProdutoNome(produtosCadastradosPorNome));
-                case 5 -> mostrarProduto(localizarProdutoID(produtosCadastradosPorId));
+            	case 1 -> produtosCadastradosPorNome = lerProdutos(nomeArquivoDados, (p -> p.descricao));
+            	case 2 -> produtosCadastradosPorId = lerProdutos(nomeArquivoDados, (p -> p.idProduto));
+            	case 3 -> produtosBalanceadosPorNome = lerProdutosAVL(nomeArquivoDados, (p -> p.descricao));
+            	case 4 -> produtosBalanceadosPorId = lerProdutosAVL(nomeArquivoDados, (p -> p.idProduto));
+            	case 5 -> mostrarProduto(localizarProdutoNome(produtosCadastradosPorNome));
+            	case 6 -> mostrarProduto(localizarProdutoID(produtosCadastradosPorId));
+            	case 7 -> mostrarProduto(localizarProdutoNome(produtosBalanceadosPorNome));
+            	case 8 -> mostrarProduto(localizarProdutoID(produtosBalanceadosPorId));
+            	case 9 -> mostrarProduto(removerProdutoNome(produtosCadastradosPorNome));
+            	case 10 -> mostrarProduto(removerProdutoId(produtosCadastradosPorId));
+            	case 11 -> recortarProdutos(produtosCadastradosPorNome); 
+            	case 12 -> recortarProdutos(produtosCadastradosPorId); 
             }
             pausa();
         }while(opcao != 0);       
