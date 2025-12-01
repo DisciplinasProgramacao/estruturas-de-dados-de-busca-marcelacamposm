@@ -26,6 +26,10 @@ public class App {
     
     static TabelaHash<Produto, Lista<Pedido>> pedidosPorProduto;
     
+    static AVL<Integer, Fornecedor> fornecedoresPorDocumento;
+    
+    static TabelaHash<Produto, Lista<Fornecedor>> fornecedoresPorProduto;
+    
     static void limparTela() {
         System.out.print("\033[H\033[2J");
         System.out.flush();
