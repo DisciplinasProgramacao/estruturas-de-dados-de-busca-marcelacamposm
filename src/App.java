@@ -128,6 +128,74 @@ public class App {
     	return produtosCadastrados;
     }
     
+    static <K> AVL<K, Fornecedor> lerFornecedores(String nomeArquivoDados, Function<Fornecedor, K> extratorDeChave) {
+        
+        Scanner arquivo = null;
+        int numFornecedores;
+        String linha;
+        Fornecedor fornecedor;
+        AVL<K, Fornecedor> fornecedoresCadastrados;
+        K chave;
+        Random sorteio = new Random();
+        
+        try {
+            arquivo = new Scanner(new File(nomeArquivoDados), Charset.forName("UTF-8"));
+            
+            numFornecedores = Integer.parseInt(arquivo.nextLine());
+            fornecedoresCadastrados = new AVL<K, Fornecedor>();
+            
+            for (int i = 0; i < numFornecedores; i++) {
+                linha = arquivo.nextLine();
+                try {
+                    fornecedor = new Fornecedor(linha);
+                    
+                    int quantidadeProdutos = sorteio.nextInt(6) + 1;
+                    for (int j = 0; j < quantidadeProdutos; j++) {
+                        try {
+                            int idProduto = sorteio.nextInt(quantosProdutos) + 10_000;
+                            Produto produto = produtosBalanceadosPorId.pesquisar(idProduto);
+                            fornecedor.adicionarProduto(produto);
+                            inserirFornecedorNaTabela(produto, fornecedor);
+                        } catch (NoSuchElementException excecao) {
+                            j--;
+                        }
+                    }
+                    
+                    chave = extratorDeChave.apply(fornecedor);
+                    fornecedoresCadastrados.inserir(chave, fornecedor);
+                } catch (IllegalArgumentException excecao) {
+                    System.out.println("Fornecedor inválido ignorado: " + linha);
+                }
+            }
+            
+        } catch (IOException excecaoArquivo) {
+            System.out.println("Erro ao ler arquivo: " + nomeArquivoDados);
+            fornecedoresCadastrados = null;
+        } catch (NumberFormatException excecao) {
+            System.out.println("Formato inválido no arquivo de fornecedores");
+            fornecedoresCadastrados = null;
+        } finally {
+            if (arquivo != null) {
+                arquivo.close();
+            }
+        }
+        
+        return fornecedoresCadastrados;
+    }
+    
+    private static void inserirFornecedorNaTabela(Produto produto, Fornecedor fornecedor) {
+        
+        Lista<Fornecedor> fornecedoresDoProduto;
+        
+        try {
+            fornecedoresDoProduto = fornecedoresPorProduto.pesquisar(produto);
+        } catch (NoSuchElementException excecao) {
+            fornecedoresDoProduto = new Lista<>();
+            fornecedoresPorProduto.inserir(produto, fornecedoresDoProduto);
+        }
+        fornecedoresDoProduto.inserirFinal(fornecedor);
+    }
+    
     static <K> Produto localizarProduto(ABB<K, Produto> produtosCadastrados, K procurado) {
     	
     	Produto produto;
