@@ -69,6 +69,8 @@ public class App {
         cabecalho();
         System.out.println("1 - Procurar produto, por id");
         System.out.println("2 - Gravar, em arquivo, pedidos de um produto");
+        System.out.println("3 - Relatório de fornecedor");
+        System.out.println("4 - Gravar, em arquivo, fornecedores de um produto");
         System.out.println("0 - Sair");
         System.out.print("Digite sua opção: ");
         try {
@@ -322,6 +324,60 @@ public class App {
         }
     }
     
+    static void relatorioDeFornecedor() {
+        
+        Fornecedor fornecedor;
+        Integer documento;
+        
+        cabecalho();
+        System.out.println("Relatório de fornecedor...");
+        
+        documento = lerOpcao("Digite o documento do fornecedor: ", Integer.class);
+        
+        if (documento == null) {
+            System.out.println("Documento inválido!");
+            return;
+        }
+        
+        try {
+            fornecedor = fornecedoresPorDocumento.pesquisar(documento);
+            System.out.println("\nDados do fornecedor:");
+            System.out.println(fornecedor.toString());
+        } catch (NoSuchElementException excecao) {
+            System.out.println("Fornecedor não encontrado.");
+        }
+        
+        System.out.println("Número de comparações realizadas: " + fornecedoresPorDocumento.getComparacoes());
+        System.out.println("Tempo de processamento da pesquisa: " + fornecedoresPorDocumento.getTempo() + " ms");
+    }
+    
+    static void fornecedoresDoProduto() {
+        
+        Lista<Fornecedor> fornecedoresDoProduto;
+        Produto produto = localizarProdutoID(produtosBalanceadosPorId);
+        
+        if (produto == null) {
+            System.out.println("Produto não encontrado. Operação cancelada.");
+            return;
+        }
+        
+        String nomeArquivo = "RelatorioFornecedoresProduto" + produto.hashCode() + ".txt";
+        
+        try {
+            FileWriter arquivoRelatorio = new FileWriter(nomeArquivo, Charset.forName("UTF-8"));
+            
+            fornecedoresDoProduto = fornecedoresPorProduto.pesquisar(produto);
+            arquivoRelatorio.append("Fornecedores do produto: " + produto.toString() + "\n\n");
+            arquivoRelatorio.append(fornecedoresDoProduto.toString() + "\n");
+            arquivoRelatorio.close();
+            System.out.println("Dados salvos em " + nomeArquivo);
+        } catch(IOException excecao) {
+            System.out.println("Problemas para criar o arquivo " + nomeArquivo + ". Tente novamente");
+        } catch(NoSuchElementException excecao) {
+            System.out.println("Não há fornecedores registrados para este produto.");
+        }
+    }
+    
 	public static void main(String[] args) {
 		teclado = new Scanner(System.in, Charset.forName("UTF-8"));
         nomeArquivoDados = "produtos.txt";
@@ -339,6 +395,13 @@ public class App {
             pedidosPorProduto = new TabelaHash<>((int)(quantosProdutos * 1.25));
             
             gerarPedidos(25_000);
+            
+            fornecedoresPorProduto = new TabelaHash<>((int)(quantosProdutos * 1.25));
+            fornecedoresPorDocumento = lerFornecedores("fornecedores.txt", Fornecedor::hashCode);
+            
+            if (fornecedoresPorDocumento == null) {
+                System.out.println("Aviso: Não foi possível carregar fornecedores.");
+            }
            
             int opcao = -1;
           
@@ -347,6 +410,8 @@ public class App {
                 switch (opcao) {
                 	case 1 -> mostrarProduto(localizarProdutoID(produtosBalanceadosPorId));
                 	case 2 -> pedidosDoProduto();
+                	case 3 -> relatorioDeFornecedor();
+                	case 4 -> fornecedoresDoProduto();
                 	case -1 -> System.out.println("Opção inválida! Digite um número.");
                 	default -> {
                 		if (opcao != 0) {
